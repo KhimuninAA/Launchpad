@@ -6,6 +6,13 @@
 //
 import AppKit
 
+enum MouseActionType{
+    case none
+    case click(item: ItemView)
+    case longClick
+    case dragged
+}
+
 class PageView: KhPageView{
     private var firstAppsPageView: AppsPageView!
     
@@ -21,22 +28,6 @@ class PageView: KhPageView{
     
     private func initView() {
         firstAppsPageView = AppsPageView(frame: .zero)
-//        addPage(firstAppsPageView)
-//        
-//        let view1 = NSView(frame: .zero)
-//        view1.wantsLayer = true
-//        view1.layer?.backgroundColor = NSColor.red.cgColor
-//        addPage(view1)
-//        
-//        let view2 = NSView(frame: .zero)
-//        view2.wantsLayer = true
-//        view2.layer?.backgroundColor = NSColor.blue.cgColor
-//        addPage(view2)
-//        
-//        let view3 = NSView(frame: .zero)
-//        view3.wantsLayer = true
-//        view3.layer?.backgroundColor = NSColor.yellow.cgColor
-//        addPage(view3)
     }
     
     private var fullAppsPages: [[PageItemData]]?
@@ -65,24 +56,67 @@ class PageView: KhPageView{
         addPage(newPageView)
     }
     
-    private func getItem(by location: NSPoint) -> ItemView? {
-//        for item in items {
-//            if item.isHidden == false {
-//                let loc = convert(location, to: item)
-//                if NSPointInRect(loc, item.bounds) {
-//                    return item
-//                }
-//            }
-//        }
-        return nil
+    func updateA(item: ItemView) {
+        
     }
     
+    private var mouseTimer: Timer?
+    private var mouseActionType: MouseActionType = .none
     override func mouseDown(with event: NSEvent) {
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
         
-        let item = getItem(by: locationInView)
+        if let item = getItem(by: locationInView) {
+            mouseActionType = .click(item: item)
+            mouseTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: false, block: { [weak self] (time) in
+                self?.mouseActionType = .longClick
+                self?.updateA(item: item)
+            })
+            searchFieldEndFocus()
+        } else {
+            super.mouseDown(with: event)
+        }
+    }
+    
+    override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
         
-        super.mouseDown(with: event)
+        mouseTimer?.invalidate()
+        mouseTimer = nil
+        
+        super.mouseUp(with: event)
+        switch mouseActionType {
+        case .none:
+            break
+        case .click(item: let item):
+            if let path = item.getPath() {
+                NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                NSApp.terminate(nil)
+            }
+        case .longClick:
+            break
+        case .dragged:
+            break
+        }
+        
+        mouseActionType = .none
+    }
+    
+    override func mouseDragged(with event: NSEvent) {
+        mouseTimer?.invalidate()
+        mouseTimer = nil
+        
+        super.mouseDragged(with: event)
+        
+        switch mouseActionType {
+        case .none:
+            break
+        case .click(item: let item):
+            mouseActionType = .dragged
+        case .longClick:
+            break
+        case .dragged:
+            break
+        }
     }
 }

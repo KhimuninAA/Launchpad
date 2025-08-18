@@ -15,7 +15,7 @@ class KhPageView: NSView {
         }
     }
     private var pageDotsView: KhPageDotsView = KhPageDotsView(frame: .zero)
-    private var searchField: NSSearchField = NSSearchField(frame: .zero)
+    private var searchField: KhSearchFieldNew = KhSearchFieldNew(frame: .zero)
     
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -40,7 +40,6 @@ class KhPageView: NSView {
             self?.setPages(isAnimator: true, dx: 0)
         }
         
-        searchField.isEditable = true
         addSubview(searchField)
     }
     
@@ -60,21 +59,24 @@ class KhPageView: NSView {
         searchField.removeFromSuperview()
         self.addSubview(searchField)
         
+        setPages(isAnimator: false, dx: 0)
+        let verticalOffset = getContentTopOffset()
+        
         let dotsSize = pageDotsView.getSize()
         let dotsLeft = 0.5 * (self.bounds.width - dotsSize.width)
-        pageDotsView.frame = CGRect(x: dotsLeft, y: 90, width: dotsSize.width, height: dotsSize.height)
-        
-        setPages(isAnimator: false, dx: 0)
+        let dotsY = verticalOffset - 16 - dotsSize.height
+        pageDotsView.frame = CGRect(x: dotsLeft, y: dotsY, width: dotsSize.width, height: dotsSize.height)
         
         let searchFieldSize = CGSize(width: 320, height: 32)
         let searchFieldLetf = 0.5 * (self.bounds.width - searchFieldSize.width)
-        let searchFieldTop = self.bounds.height - 100
+        let searchFieldTop = self.bounds.height - verticalOffset + searchFieldSize.height + 16
         searchField.frame = CGRect(x: searchFieldLetf, y: searchFieldTop, width: searchFieldSize.width, height: searchFieldSize.height)
     }
     
     private var startLocation: NSPoint?
     override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
+        searchFieldEndFocus()
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
         startLocation = locationInView
@@ -82,7 +84,7 @@ class KhPageView: NSView {
     
     override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        
+        searchFieldEndFocus()
         let changeValue: CGFloat = 0.1 //0.3
         
         let locationInWindow = event.locationInWindow
@@ -112,6 +114,7 @@ class KhPageView: NSView {
     
     override func mouseDragged(with event: NSEvent) {
         super.mouseDragged(with: event)
+        searchFieldEndFocus()
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
         
@@ -140,6 +143,31 @@ class KhPageView: NSView {
                 view.frame = CGRect(x: left, y: 0, width: selfSize.width, height: selfSize.height)
             }
             startIndex += 1
+        }
+    }
+    
+    func getContentTopOffset() -> CGFloat {
+        if let view = views.first as? AppsPageView {
+            return view.getTopOffset()
+        }
+        return 0
+    }
+    
+    func getItem(by location: NSPoint) -> ItemView? {
+        for view in views {
+            let loc = convert(location, to: view)
+            if let view = view as? AppsPageView {
+                if let item = view.getItem(by: loc) {
+                    return item
+                }
+            }
+        }
+        return nil
+    }
+    
+    func searchFieldEndFocus() {
+        if let window = self.window {
+            window.makeFirstResponder(window)
         }
     }
 }

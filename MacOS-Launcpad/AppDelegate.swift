@@ -15,7 +15,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.window.makeFirstResponder(self)
-        makeWindows()
+        //makeWindows()
         
         pageView = PageView(frame: .zero)
         

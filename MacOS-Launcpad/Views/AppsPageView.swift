@@ -40,9 +40,6 @@ class AppsPageView: NSView{
         layer?.backgroundColor = NSColor.clear.cgColor
     }
     
-    private let itemSize = CGSize(width: 128, height: 128)
-    private let offset: CGFloat = 128
-    private let padding: CGFloat = 32
     func getMaxAppsCount(size: CGSize) -> Int {
         let appSize = getAppsSize(size: size)
         return appSize.maxX * appSize.maxY
@@ -64,6 +61,9 @@ class AppsPageView: NSView{
         resizeSubviews(withOldSize: bounds.size)
     }
     
+    private var topOffset: CGFloat = 0
+    private var leftOffset: CGFloat = 0
+    private let paddingScale: CGFloat = 0.6
     override func resizeSubviews(withOldSize oldSize: NSSize) {
         super.resizeSubviews(withOldSize: oldSize)
         let selfSize = self.frame.size
@@ -74,29 +74,46 @@ class AppsPageView: NSView{
         
         let maxSize = getAppsSize(size: selfSize)
         
-        let maxY = maxSize.maxY //Int( (selfSize.height - 2 * offset) / (itemSize.height + padding) )
-        let topOffset = 0.5 * (selfSize.height - CGFloat(maxY) * (itemSize.height + padding))
+        let maxByXItemSize = (selfSize.width)/( (1 + paddingScale) * (CGFloat(maxSize.maxX) + 2) + paddingScale )
+        let maxByYItemSize = (selfSize.height)/( (1 + paddingScale) * (CGFloat(maxSize.maxY) + 2) + paddingScale )
+        let itemSize = min(maxByXItemSize, maxByYItemSize)
+        let padding = itemSize * paddingScale
         
-        let maxX = maxSize.maxX // Int( (selfSize.width - 2 * offset) / (itemSize.width + padding) )
-        let leftOffset = 0.5 * (selfSize.width - CGFloat(maxX) * (itemSize.width + padding))
+        topOffset = 0.5 * (selfSize.height - CGFloat(maxSize.maxY) * (itemSize + padding))
+        leftOffset = 0.5 * (selfSize.width - CGFloat(maxSize.maxX) * (itemSize + padding))
         
-        if maxY > 1 && maxX > 1 {
+        if maxSize.maxY > 1 && maxSize.maxX > 1 {
             
-            for y in 0...(maxY-1){
-                for x in 0...(maxX-1) {
-                    let index = y*maxX + x
+            for y in 0...(maxSize.maxY-1){
+                for x in 0...(maxSize.maxX-1) {
+                    let index = y*maxSize.maxX + x
                     if index < items.count {
                         let itemView = items[index]
                         itemView.isHidden = false
-                        let pX = leftOffset + CGFloat(x) * (padding + itemSize.width)
-                        let pY = selfSize.height - topOffset - itemSize.height - CGFloat(y) * (padding + itemSize.height)
+                        let pX = leftOffset + CGFloat(x) * (padding + itemSize)
+                        let pY = selfSize.height - topOffset - itemSize - CGFloat(y) * (padding + itemSize)
                         //padding + CGFloat(y) * (padding + itemSize.height)
-                        itemView.frame = CGRect(x: pX, y: pY, width: itemSize.width, height: itemSize.height)
+                        itemView.frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
                     }
                 }
             }
         }
         
+    }
+    
+    func getItem(by location: NSPoint) -> ItemView? {
+        for item in items {
+            if item.isHidden == false {
+                if NSPointInRect(location, item.frame) {
+                    return item
+                }
+            }
+        }
+        return nil
+    }
+    
+    func getTopOffset() -> CGFloat {
+        return topOffset
     }
     
 }
