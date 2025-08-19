@@ -13,12 +13,12 @@ struct ViewAppsSize{
 }
 
 struct PageItemData{
-    let id: String
-    let name: String
-    let page: Int
-    let index: Int
-    let app: AppsInfo?
-    let apps: [AppsInfo]?
+    var id: String
+    var name: String
+    var page: Int
+    var index: Int
+    var app: AppsInfo?
+    var apps: [AppsInfo]?
 }
 
 class AppsPageView: NSView{

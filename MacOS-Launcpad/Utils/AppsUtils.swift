@@ -121,6 +121,40 @@ class AppsUtils{
         
         return pages
     }
+
+    static func search(AppsPages: [[PageItemData]]?, pageCount: Int, searchText: String) -> [[PageItemData]]? {
+        var searchPages: [[PageItemData]] = []
+        var index: Int = 0
+        var pageIndex: Int = 0
+
+        let searchTempText = searchText.lowercased()
+        var searchPage: [PageItemData] = []
+        if let appsPages = AppsPages {
+            for appsPage in appsPages {
+                for app in appsPage {
+                    let appName = app.name.lowercased()
+                    if appName.contains(searchTempText) {
+                        var newApp = app
+                        newApp.index = index
+                        newApp.page = pageIndex
+                        searchPage.append(newApp)
+                        index += 1
+                        if index >= pageCount {
+                            index = 0
+                            pageIndex += 1
+                            searchPages.append(searchPage)
+                            searchPage = []
+                        }
+                    }
+                }
+            }
+        }
+
+        if searchPage.count > 0 {
+            searchPages.append(searchPage)
+        }
+        return searchPages
+    }
 }
 
 

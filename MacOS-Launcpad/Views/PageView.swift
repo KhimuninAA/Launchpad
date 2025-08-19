@@ -28,23 +28,38 @@ class PageView: KhPageView{
     
     private func initView() {
         firstAppsPageView = AppsPageView(frame: .zero)
+        searchField.onSearchTextChanged = { [weak self] (searchText) in
+            self?.searchText = searchText
+            self?.updateAppsUI()
+        }
     }
     
     private var fullAppsPages: [[PageItemData]]?
     private var showAppsPages: [[PageItemData]]?
+    private var maxAppCount: Int = 0
     func setApps(_ apps: [AppsInfo]) {
-        let maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
+        maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
         fullAppsPages = AppsUtils.getAppsPage(apps: apps, pageCount: maxAppCount)
         
         updateAppsUI()
     }
-    
+
+    private var searchText: String? = nil
     private func updateSearch() {
-        showAppsPages = fullAppsPages
+        if let searchText = searchText, searchText.count > 0 {
+            let searchAppsPages = AppsUtils.search(AppsPages: fullAppsPages, pageCount: maxAppCount, searchText: searchText)
+            showAppsPages = searchAppsPages
+        } else {
+            showAppsPages = fullAppsPages
+        }
     }
     
     private func updateAppsUI() {
         updateSearch()
+
+        ///clear
+        self.clearViews()
+
         if let showAppsPages = showAppsPages {
             for appsPage in showAppsPages {
                 let appsPageView = AppsPageView(frame: .zero)
@@ -59,7 +74,7 @@ class PageView: KhPageView{
     func updateA(item: ItemView) {
         
     }
-    
+
     private var mouseTimer: Timer?
     private var mouseActionType: MouseActionType = .none
     override func mouseDown(with event: NSEvent) {

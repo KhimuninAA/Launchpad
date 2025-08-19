@@ -15,8 +15,17 @@ class KhPageView: NSView {
         }
     }
     private var pageDotsView: KhPageDotsView = KhPageDotsView(frame: .zero)
-    private var searchField: KhSearchFieldNew = KhSearchFieldNew(frame: .zero)
-    
+
+    var searchField: KhSearchFieldNew = KhSearchFieldNew(frame: .zero)
+    //private var searchField: KhSearchField = KhSearchField(frame: .zero)
+
+    func clearViews() {
+        for view in views {
+            view.removeFromSuperview()
+        }
+        views = [NSView]()
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         initView()
@@ -39,29 +48,43 @@ class KhPageView: NSView {
             self?.currentPage = i
             self?.setPages(isAnimator: true, dx: 0)
         }
-        
+
+        searchField.font = NSFont.systemFont(ofSize: 24, weight: .regular)
+        searchField.textColor = .white
         addSubview(searchField)
     }
     
     func addPage(_ newPage: NSView) {
-        addSubview(newPage)
+        addSubview(newPage, positioned: .below, relativeTo: pageDotsView)
+        //self.insertSubview(newPage, at: 0)
+        //addSubview(newPage)
         views.append(newPage)
-        resizeSubviews(withOldSize: self.bounds.size)
         pageDotsView.setDots(count: views.count)
+        DispatchQueue.main.async { [weak self] in
+            self?.resizeSubviews(withOldSize: self?.bounds.size ?? CGSize(width: 0, height: 0))
+        }
     }
-    
+
+    private var verticalOffset: CGFloat = 0
     override func resizeSubviews(withOldSize oldSize: NSSize) {
         super.resizeSubviews(withOldSize: oldSize)
         
-        pageDotsView.removeFromSuperview()
-        self.addSubview(pageDotsView)
-        
-        searchField.removeFromSuperview()
-        self.addSubview(searchField)
-        
+//        pageDotsView.removeFromSuperview()
+//        self.addSubview(pageDotsView)
+//
+//        let isSearchFieldResponder =  searchField.isFirstResponder
+//        searchField.removeFromSuperview()
+//        self.addSubview(searchField)
+//        if isSearchFieldResponder {
+//            self.window?.makeFirstResponder(searchField)
+//        }
+
         setPages(isAnimator: false, dx: 0)
-        let verticalOffset = getContentTopOffset()
-        
+        let offset = getContentTopOffset()
+        if offset > 0 {
+            verticalOffset = offset
+        }
+
         let dotsSize = pageDotsView.getSize()
         let dotsLeft = 0.5 * (self.bounds.width - dotsSize.width)
         let dotsY = verticalOffset - 16 - dotsSize.height
@@ -79,7 +102,12 @@ class KhPageView: NSView {
         searchFieldEndFocus()
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
-        startLocation = locationInView
+
+        if NSPointInRect(locationInView, searchField.frame) {
+            searchField.window?.makeFirstResponder(searchField)
+        } else {
+            startLocation = locationInView
+        }
     }
     
     override func mouseUp(with event: NSEvent) {

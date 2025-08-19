@@ -7,6 +7,9 @@
 
 import AppKit
 
+class KhSearchFieldCell: NSTextFieldCell {
+}
+
 class KhSearchField: NSSearchField {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -38,8 +41,10 @@ class KhSearchField: NSSearchField {
 //        super.rectForSearchText(whenCentered: isCentered)
 //        return CGRect(x: 100, y: 0, width: 100, height: 32)
 //    }
-    
+
+    private var searchFieldCell = KhSearchFieldCell()
     private func initView() {
+        cell = searchFieldCell
         textColor = .white
         font = NSFont.systemFont(ofSize: 24)
         if let searchButtonCell = self.cell as? NSSearchFieldCell {
@@ -109,19 +114,20 @@ class KhSearchField: NSSearchField {
 //        print("")
 //    }
     
-    override var acceptsFirstResponder: Bool {
-        layer?.borderColor = NSColor.white.cgColor
-        layer?.borderWidth = 2
-        return true
-    }
-
-    open override func textDidEndEditing(_ notification: Notification) {
-        layer?.borderColor = NSColor.darkGray.cgColor
-        layer?.borderWidth = 1
-    }
+//    override var acceptsFirstResponder: Bool {
+//        layer?.borderColor = NSColor.white.cgColor
+//        layer?.borderWidth = 2
+//        return true
+//    }
+//
+//    open override func textDidEndEditing(_ notification: Notification) {
+//        layer?.borderColor = NSColor.darkGray.cgColor
+//        layer?.borderWidth = 1
+//    }
     
     open override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
+        let newRect = dirtyRect.insetBy(dx: 16, dy: 2)
+        super.draw(newRect)
     }
     
 //    override func select(withFrame: NSRect, in: NSView, editor: NSText, delegate: Any?, start: Int, length: Int) {
