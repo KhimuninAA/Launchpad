@@ -16,11 +16,26 @@ class ItemView: NSView {
     private var imageView: NSImageView!
     private var nameLabelView: KhLabel!
     
+    var isDragged: Bool = false
+    
     func getPath() -> String? {
         if let itemData = itemData?.app as? AppsInfo {
             return itemData.path
         }
         return nil
+    }
+    
+    var uid: String {
+        return itemData?.id ?? ""
+    }
+    
+    var index: Int {
+        get{
+            return itemData?.index ?? 0
+        }
+        set{
+            itemData?.index = newValue
+        }
     }
     
     override init(frame frameRect: NSRect) {
@@ -39,8 +54,9 @@ class ItemView: NSView {
         
         
         layer?.cornerRadius = 16
+        
         layer?.borderColor = NSColor.darkGray.cgColor
-        layer?.borderWidth = 1
+        layer?.borderWidth = 0 //1
         layer?.masksToBounds = false
         
         

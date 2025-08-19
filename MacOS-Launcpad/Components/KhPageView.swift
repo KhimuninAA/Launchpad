@@ -182,7 +182,7 @@ class KhPageView: NSView {
     
     func searchFieldEndFocus() {
         if let window = self.window {
-            window.makeFirstResponder(window)
+            window.makeFirstResponder(self)
         }
     }
 
@@ -192,6 +192,24 @@ class KhPageView: NSView {
         if newPage >= 0 && newPage < views.count {
             currentPage = newPage
             setPages(isAnimator: true, dx: 0)
+        }
+    }
+    
+    func getCurrentView() -> NSView? {
+        if currentPage >= 0 && currentPage < views.count {
+            return views[currentPage]
+        }
+        return nil
+    }
+    
+    override var acceptsFirstResponder: Bool {
+        return true
+    }
+    
+    override func keyDown(with event: NSEvent) {
+        super.keyDown(with: event)
+        if event.keyCode == 53 {
+            NSApp.terminate(nil)
         }
     }
 }

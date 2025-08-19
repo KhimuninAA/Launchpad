@@ -47,6 +47,7 @@ class PageView: KhPageView{
     private var searchText: String? = nil
     private func updateSearch() {
         if let searchText = searchText, searchText.count > 0 {
+            currentPage = 0
             let searchAppsPages = AppsUtils.search(AppsPages: fullAppsPages, pageCount: maxAppCount, searchText: searchText)
             showAppsPages = searchAppsPages
         } else {
@@ -79,12 +80,14 @@ class PageView: KhPageView{
     private var mouseActionType: MouseActionType = .none
     private var startLocation: NSPoint?
     private var startItemFrame: NSRect?
+    
     override func mouseDown(with event: NSEvent) {
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
         startLocation = locationInView
 
         if let item = getItem(by: locationInView) {
+            moveToIndex = item.index
             startItemFrame = item.frame
 
 
@@ -119,8 +122,9 @@ class PageView: KhPageView{
         case .longClick:
             break
         case .dragged(item: let item):
-            if let startItemFrame = startItemFrame {
-                item.frame = startItemFrame
+            item.isDragged = false
+            if let appsPageView = getCurrentView() as? AppsPageView {
+                appsPageView.toFrame(itemView: item)
             }
             break
         }
@@ -140,6 +144,7 @@ class PageView: KhPageView{
         case .none:
             break
         case .click(item: let item):
+            item.isDragged = true
             mouseActionType = .dragged(item: item)
             isDragged = true
             moveItem = item
@@ -163,6 +168,18 @@ class PageView: KhPageView{
             let newFrame = CGRect(x: nX, y: nY, width: startItemFrame.width, height: startItemFrame.height)
             moveItem.frame = newFrame
             draggedNeedChangePage(x: nX)
+            moveItemView(item: moveItem, x: nX + 0.5 * startItemFrame.width, y: nY + 0.5 * startItemFrame.height)
+        }
+    }
+    
+    private var moveToIndex: Int? = nil
+    func moveItemView(item: ItemView, x: CGFloat, y: CGFloat) {
+        if let appsPageView = getCurrentView() as? AppsPageView {
+            let index = appsPageView.getIndex(x: x, y: y)
+            if moveToIndex != index {
+                moveToIndex = index
+                appsPageView.move(itemView: item, to: index)
+            }
         }
     }
 

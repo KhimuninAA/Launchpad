@@ -120,6 +120,15 @@ class KhSearchFieldNew: NSTextField {
         clearButton.isHidden = true
     }
 
+//    override var acceptsFirstResponder: Bool {
+//        return true
+//    }
+//    
+//    override func keyDown(with event: NSEvent) {
+//        if event.keyCode == 53 {
+//            NSApp.terminate(nil)
+//        }
+//    }
 }
 
 extension KhSearchFieldNew : NSTextFieldDelegate {

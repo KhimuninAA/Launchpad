@@ -15,11 +15,13 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.window.makeFirstResponder(self)
-        self.window.minSize = CGSize(width: 1000, height: 800)
-        var frame = window.frame
-        frame.size = NSSize(width: 1400, height: 1000) // Set desired width and height
-        window.setFrame(frame, display: true, animate: true)
-        //makeWindows()
+        
+//        self.window.minSize = CGSize(width: 1000, height: 800)
+//        var frame = window.frame
+//        frame.size = NSSize(width: 1400, height: 1000) // Set desired width and height
+//        window.setFrame(frame, display: true, animate: true)
+        
+        makeWindows()
         
         pageView = PageView(frame: .zero)
         
@@ -42,6 +44,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
     }
     
     override func keyDown(with event: NSEvent) {
+        super.keyDown(with: event)
         if event.keyCode == 53 {
             NSApp.terminate(nil)
         }
