@@ -17,21 +17,31 @@ struct AppsInfo: ItemData{
 class AppsUtils{
     static func getAllApps() -> [AppsInfo] {
         var tempApps = [AppsInfo]()
-        
+
+        //https://benscheirman.com/2019/10/troubleshooting-appkit-file-permissions.html
+
         var appPaths = ["/Applications", "/System/Applications" ]
         
         ///Volumes/M4Ext1Tb/App
         /////NSRemovableVolumesUsageDescription
-//        let user = NSUserName()
-//        let userApps = "/Users/\(user)/Applications"
-//        //appPaths.append(userApps)
+        let user = NSUserName()
+        let userApps = "/Users/\(user)/Applications"
+
+        if let userDirUrl = URL(string: userApps) {
+            let ddd = userDirUrl.startAccessingSecurityScopedResource()
+            print(ddd)
+        }
+
+        appPaths.append(userApps)
 //        appPaths = [userApps]
 //        appPaths.append("/Volumes/M4Ext1Tb/App")
         
         
         for basePath in appPaths {
-            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: basePath) else { continue }
-            
+            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: basePath) else {
+                continue
+            }
+
             if let apps = getApps(for: contents, basePath: basePath) {
                 tempApps.insert(contentsOf: apps, at: tempApps.count)
             }
@@ -155,6 +165,33 @@ class AppsUtils{
         }
         return searchPages
     }
+
+//    private func saveBookmarkData(for workDir: URL) {
+//        do {
+//            let bookmarkData = try workDir.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+//
+//            // save in UserDefaults
+//            Preferences.workingDirectoryBookmark = bookmarkData
+//        } catch {
+//            print("Failed to save bookmark data for \(workDir)", error)
+//        }
+//    }
+//
+//    private func restoreFileAccess(with bookmarkData: Data) -> URL? {
+//        do {
+//            var isStale = false
+//            let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+//            if isStale {
+//                // bookmarks could become stale as the OS changes
+//                print("Bookmark is stale, need to save a new one... ")
+//                saveBookmarkData(for: url)
+//            }
+//            return url
+//        } catch {
+//            print("Error resolving bookmark:", error)
+//            return nil
+//        }
+//    }
 }
 
 

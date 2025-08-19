@@ -40,7 +40,6 @@ class KhPageView: NSView {
         views = [NSView]()
         
         wantsLayer = true
-        //layer?.backgroundColor = NSColor.clear.cgColor
         layer?.backgroundColor = NSColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.85).cgColor
         
         addSubview(pageDotsView)
@@ -56,8 +55,6 @@ class KhPageView: NSView {
     
     func addPage(_ newPage: NSView) {
         addSubview(newPage, positioned: .below, relativeTo: pageDotsView)
-        //self.insertSubview(newPage, at: 0)
-        //addSubview(newPage)
         views.append(newPage)
         pageDotsView.setDots(count: views.count)
         DispatchQueue.main.async { [weak self] in
@@ -68,16 +65,6 @@ class KhPageView: NSView {
     private var verticalOffset: CGFloat = 0
     override func resizeSubviews(withOldSize oldSize: NSSize) {
         super.resizeSubviews(withOldSize: oldSize)
-        
-//        pageDotsView.removeFromSuperview()
-//        self.addSubview(pageDotsView)
-//
-//        let isSearchFieldResponder =  searchField.isFirstResponder
-//        searchField.removeFromSuperview()
-//        self.addSubview(searchField)
-//        if isSearchFieldResponder {
-//            self.window?.makeFirstResponder(searchField)
-//        }
 
         setPages(isAnimator: false, dx: 0)
         let offset = getContentTopOffset()
@@ -196,6 +183,15 @@ class KhPageView: NSView {
     func searchFieldEndFocus() {
         if let window = self.window {
             window.makeFirstResponder(window)
+        }
+    }
+
+    func changePage(spin: Int) {
+        let newPage = currentPage + spin
+
+        if newPage >= 0 && newPage < views.count {
+            currentPage = newPage
+            setPages(isAnimator: true, dx: 0)
         }
     }
 }
