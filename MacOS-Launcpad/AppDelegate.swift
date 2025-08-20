@@ -11,30 +11,27 @@ import Cocoa
 class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
 
     @IBOutlet var window: KhWindow!
-    private var pageView: PageView!
+    //private var pageView: PageView!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        self.window.makeFirstResponder(self)
+        self.window.makeFirstResponder(self)        
         
-//        self.window.minSize = CGSize(width: 1000, height: 800)
-//        var frame = window.frame
-//        frame.size = NSSize(width: 1400, height: 1000) // Set desired width and height
-//        window.setFrame(frame, display: true, animate: true)
+        let isTest: Bool = false
+        if isTest == true {
+            self.window.minSize = CGSize(width: 1000, height: 800)
+            var frame = window.frame
+            frame.size = NSSize(width: 1400, height: 1000) // Set desired width and height
+            window.setFrame(frame, display: true, animate: true)
+        }else {
+            makeWindows()
+        }
         
-        makeWindows()
-        
-        pageView = PageView(frame: .zero)
-        
-        window.contentView = pageView
-        
-        //window.appearance = NSAppearance(named: .aqua)
-        //rootView.appearance = NSAppearance(named: .darkAqua)
         window.isOpaque = false
         window.backgroundColor = .clear
         
-        let apps = AppsUtils.getAllApps()
-        //rootView.setApps(apps)
-        pageView.setApps(apps)
+        if let pageView = self.window.contentView as? PageView {
+            pageView.reloadApps()
+        }
     }
     
     override var acceptsFirstResponder: Bool {
@@ -71,6 +68,11 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
         window.level = .floating
         window.setFrame(NSScreen.main?.frame ?? .zero, display: true)
     }
-
+    
+    @IBAction func addAppPath(_ sender: Any) {
+        if let pageView = self.window.contentView as? PageView {
+            pageView.addNewAppsFolder()
+        }
+    }
 }
 

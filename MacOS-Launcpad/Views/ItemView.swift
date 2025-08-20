@@ -26,7 +26,7 @@ class ItemView: NSView {
     }
     
     var uid: String {
-        return itemData?.id ?? ""
+        return itemData?.dbApp.guid ?? ""
     }
     
     var index: Int {

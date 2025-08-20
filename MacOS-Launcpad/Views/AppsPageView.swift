@@ -12,21 +12,13 @@ struct ViewAppsSize{
     let maxX: Int
 }
 
-struct PageItemData{
-    var id: String
-    var name: String
-    var page: Int
-    var index: Int
-    var app: AppsInfo?
-    var apps: [AppsInfo]?
-}
-
 struct PageItemPos{
     let x: CGFloat
     let y: CGFloat
 }
 
 class AppsPageView: NSView{
+    var onNeedDBSave: (() -> Void)?
     private var items: [ItemView]!
     
     override init(frame frameRect: NSRect) {
@@ -145,6 +137,7 @@ class AppsPageView: NSView{
                 item.index = setToIndex
             }
         }
+        onNeedDBSave?()
         
         let selfSizeHeight = self.bounds.height
         NSAnimationContext.runAnimationGroup({ context in

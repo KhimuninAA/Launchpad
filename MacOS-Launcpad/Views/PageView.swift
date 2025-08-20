@@ -15,6 +15,7 @@ enum MouseActionType{
 
 class PageView: KhPageView{
     private var firstAppsPageView: AppsPageView!
+    private var coreData: DBCoreData!
     
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -27,6 +28,7 @@ class PageView: KhPageView{
     }
     
     private func initView() {
+        coreData = DBCoreData.init()
         firstAppsPageView = AppsPageView(frame: .zero)
         searchField.onSearchTextChanged = { [weak self] (searchText) in
             self?.searchText = searchText
@@ -34,12 +36,57 @@ class PageView: KhPageView{
         }
     }
     
-    private var fullAppsPages: [[PageItemData]]?
-    private var showAppsPages: [[PageItemData]]?
-    private var maxAppCount: Int = 0
+    private var fullAppsPages: [PageItemData]?
+    private var showAppsPages: [PageItemData]?
+    static var maxAppCount: Int = 0
+    
+    func loadItemsData(apps: [AppsInfo]) -> [PageItemData] {
+        let allDB = coreData.apps.getAll()
+        var tempItemsData = [PageItemData]()
+        
+        var newApps = [AppsInfo]()
+        
+        for app in apps {
+            if let dbApp = allDB.filter({ $0.guid == app.path }).first {
+                let item = PageItemData(dbApp: dbApp, app: app, apps: nil)
+                tempItemsData.append(item)
+            } else {
+                newApps.append(app)
+            }
+        }
+        
+        for newApp in newApps {
+            let newPos = tempItemsData.newPos()
+            let newDBApp = coreData.apps.new(with: newApp, newPos: newPos)
+            let item = PageItemData(dbApp: newDBApp, app: newApp, apps: nil)
+            tempItemsData.append(item)
+        }
+        
+        if newApps.count > 0 {
+            coreData.saveContext()
+        }
+        
+        return tempItemsData
+    }
+    
+    func reloadApps() {
+        let urls = coreData.urls.all()
+        let apps = AppsUtils.getAllApps(urls: urls)
+        setApps(apps)
+    }
+    
     func setApps(_ apps: [AppsInfo]) {
-        maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
-        fullAppsPages = AppsUtils.getAppsPage(apps: apps, pageCount: maxAppCount)
+        PageView.maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
+        fullAppsPages = loadItemsData(apps: apps)
+        
+//        if let fullAppsPages = fullAppsPages {
+//            for page in fullAppsPages {
+//                for item in page {
+//                    let newDBItem = coreData.apps.new(with: item)
+//                    coreData.saveContext()
+//                }
+//            }
+//        }
         
         updateAppsUI()
     }
@@ -48,7 +95,7 @@ class PageView: KhPageView{
     private func updateSearch() {
         if let searchText = searchText, searchText.count > 0 {
             currentPage = 0
-            let searchAppsPages = AppsUtils.search(AppsPages: fullAppsPages, pageCount: maxAppCount, searchText: searchText)
+            let searchAppsPages = fullAppsPages?.search(text: searchText)
             showAppsPages = searchAppsPages
         } else {
             showAppsPages = fullAppsPages
@@ -62,12 +109,18 @@ class PageView: KhPageView{
         self.clearViews()
 
         if let showAppsPages = showAppsPages {
-            for appsPage in showAppsPages {
+            let pageCount = showAppsPages.maxPage()
+            for i in 0...pageCount {
+                let items = showAppsPages.one(page: i)
                 let appsPageView = AppsPageView(frame: .zero)
                 addPage(appsPageView)
-                appsPageView.setApps(appsPage)
+                appsPageView.setApps(items)
+                appsPageView.onNeedDBSave = { [weak self] in
+                    self?.coreData.saveContext()
+                }
             }
         }
+
         let newPageView = AppsPageView(frame: .zero)
         addPage(newPageView)
     }
@@ -215,5 +268,31 @@ class PageView: KhPageView{
         draggedNeedChangePageTimer?.invalidate()
         draggedNeedChangePageTimer = nil
         draggedNeedChangeValue = 0
+    }
+    
+    func addNewAppsFolder() {
+        if let newUrl = promptForWorkingDirectoryPermission() {
+            let urls = coreData.urls.all()
+            if urls.isExist(url: newUrl) == false, let data = DBAppUrl.data(for: newUrl) {
+                let new = coreData.urls.new(with: data)
+                coreData.saveContext()
+                reloadApps()
+            }
+        }
+    }
+    
+    private func promptForWorkingDirectoryPermission() -> URL? {
+        let openPanel = NSOpenPanel()
+        openPanel.message = "Choose your directory"
+        openPanel.prompt = "Choose"
+        openPanel.allowedContentTypes = []
+        //openPanel.allowedFileTypes = ["none"]
+        openPanel.allowsOtherFileTypes = false
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+
+        let response = openPanel.runModal()
+        print(openPanel.urls) // this contains the chosen folder
+        return openPanel.urls.first
     }
 }
