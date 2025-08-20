@@ -19,6 +19,7 @@ struct PageItemPos{
 
 class AppsPageView: NSView{
     var onNeedDBSave: (() -> Void)?
+    var onFreeMoveItem: ((_ item: ItemView) -> Void)?
     private var items: [ItemView]!
     
     override init(frame frameRect: NSRect) {
@@ -65,6 +66,12 @@ class AppsPageView: NSView{
     private var itemSize: CGFloat = 0
     private var padding: CGFloat = 0
     
+    override var frame: NSRect {
+                didSet {
+                    resizeSubviews(withOldSize: self.bounds.size)
+                }
+            }
+    
     override func resizeSubviews(withOldSize oldSize: NSSize) {
         super.resizeSubviews(withOldSize: oldSize)
         let selfSize = self.frame.size
@@ -96,9 +103,13 @@ class AppsPageView: NSView{
         let selfSize = self.frame.size
         if (x >= leftOffset && x <= (selfSize.width - leftOffset)) &&
             (y >= topOffset && y <= selfSize.height - topOffset) {
-            let col = Int((x-leftOffset)/(itemSize + padding))
-            let row = Int(((selfSize.height - y)-topOffset)/(itemSize + padding))
-            return col + appsSize.maxX * row
+            if (itemSize + padding) > 0 {
+                let col = Int((x-leftOffset)/(itemSize + padding))
+                let row = Int(((selfSize.height - y)-topOffset)/(itemSize + padding))
+                return col + appsSize.maxX * row
+            } else {
+                return 0
+            }
         }
         return nil
     }
@@ -110,45 +121,73 @@ class AppsPageView: NSView{
     }
     
     func toFrame(itemView: ItemView) {
+        let selfSizeHeight = self.bounds.height
+        var notAddItem: Bool = true
         for item in items {
             if item.uid == itemView.uid {
-                let selfSizeHeight = self.bounds.height
+                notAddItem = false
                 let pos = getPos(by: item.index)
                 let pX = leftOffset + CGFloat(pos.x) * (padding + itemSize)
                 let pY = selfSizeHeight - topOffset - itemSize - CGFloat(pos.y) * (padding + itemSize)
-                item.animator().frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
+                if pos.y < 5 {
+                    item.isHidden = false
+                    item.animator().frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
+                } else {
+                    item.isHidden = true
+                    item.removeFromSuperview()
+                    items = items.filter{ $0.uid != item.uid }
+                    onFreeMoveItem?(item)
+                }
             }
+        }
+        if notAddItem == true {
+            items.append(itemView)
+            let pos = getPos(by: itemView.index)
+            let pX = leftOffset + CGFloat(pos.x) * (padding + itemSize)
+            let pY = selfSizeHeight - topOffset - itemSize - CGFloat(pos.y) * (padding + itemSize)
+            itemView.animator().frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
         }
     }
     
     func move(itemView: ItemView, to toIndex: Int?) {
         items = items.sorted { $0.index < $1.index }
-        
-        let setToIndex = toIndex ?? items.count - 1
         var index = 0
-        for item in items {
-            if item.isDragged == false {
-                if index == setToIndex {
+        
+        if let toIndex = toIndex {
+            for item in items {
+                if item.isDragged == false {
+                    if index == toIndex {
+                        index += 1
+                    }
+                    item.index = index
+                    index += 1
+                } else {
+                    item.index = toIndex
+                }
+            }
+        } else {
+            for item in items {
+                if item.isDragged == false {
+                    item.index = index
                     index += 1
                 }
-                item.index = index
-                index += 1
-            } else {
-                item.index = setToIndex
             }
         }
         onNeedDBSave?()
         
         let selfSizeHeight = self.bounds.height
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2 // Set the animation duration
-            //context.timingFunction = .easeInEaseOut // Set the animation curve
-
+            context.duration = 0.2
             for item in items {
                 let pos = getPos(by: item.index)
                 let pX = leftOffset + CGFloat(pos.x) * (padding + itemSize)
                 let pY = selfSizeHeight - topOffset - itemSize - CGFloat(pos.y) * (padding + itemSize)
-                item.animator().frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
+                if pos.y < 5 {
+                    item.isHidden = false
+                    item.animator().frame = CGRect(x: pX, y: pY, width: itemSize, height: itemSize)
+                } else {
+                    item.isHidden = true
+                }
             }
         }) {
         }

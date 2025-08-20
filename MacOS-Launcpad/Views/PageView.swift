@@ -79,15 +79,6 @@ class PageView: KhPageView{
         PageView.maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
         fullAppsPages = loadItemsData(apps: apps)
         
-//        if let fullAppsPages = fullAppsPages {
-//            for page in fullAppsPages {
-//                for item in page {
-//                    let newDBItem = coreData.apps.new(with: item)
-//                    coreData.saveContext()
-//                }
-//            }
-//        }
-        
         updateAppsUI()
     }
 
@@ -110,13 +101,20 @@ class PageView: KhPageView{
 
         if let showAppsPages = showAppsPages {
             let pageCount = showAppsPages.maxPage()
-            for i in 0...pageCount {
-                let items = showAppsPages.one(page: i)
-                let appsPageView = AppsPageView(frame: .zero)
-                addPage(appsPageView)
-                appsPageView.setApps(items)
-                appsPageView.onNeedDBSave = { [weak self] in
-                    self?.coreData.saveContext()
+            if pageCount >= 0 {
+                for i in 0...pageCount {
+                    let items = showAppsPages.one(page: i)
+                    let appsPageView = AppsPageView(frame: .zero)
+                    addPage(appsPageView)
+                    appsPageView.setApps(items)
+                    appsPageView.onNeedDBSave = { [weak self] in
+                        self?.coreData.saveContext()
+                    }
+                    appsPageView.onFreeMoveItem = { [weak self] (itemView) in
+                        self?.fullAppsPages?.freeMove(uid: itemView.uid)
+                        self?.coreData.saveContext()
+                        self?.updateAppsUI()
+                    }
                 }
             }
         }
@@ -178,6 +176,7 @@ class PageView: KhPageView{
             item.isDragged = false
             if let appsPageView = getCurrentView() as? AppsPageView {
                 appsPageView.toFrame(itemView: item)
+                appsPageView.addSubview(item)
             }
             break
         }
@@ -185,6 +184,7 @@ class PageView: KhPageView{
         mouseActionType = .none
     }
     
+    var moveItem: ItemView? = nil
     override func mouseDragged(with event: NSEvent) {
         mouseTimer?.invalidate()
         mouseTimer = nil
@@ -192,7 +192,6 @@ class PageView: KhPageView{
         super.mouseDragged(with: event)
 
         var isDragged: Bool = false
-        var moveItem: ItemView? = nil
         switch mouseActionType {
         case .none:
             break
@@ -201,11 +200,18 @@ class PageView: KhPageView{
             mouseActionType = .dragged(item: item)
             isDragged = true
             moveItem = item
+            if let moveItem = moveItem {
+                addSubview(moveItem)
+            }
+            break
+            
         case .longClick:
             break
         case .dragged(item: let item):
             isDragged = true
-            moveItem = item
+            if moveItem == nil {
+                moveItem = item
+            }
             break
         }
 
@@ -274,7 +280,7 @@ class PageView: KhPageView{
         if let newUrl = promptForWorkingDirectoryPermission() {
             let urls = coreData.urls.all()
             if urls.isExist(url: newUrl) == false, let data = DBAppUrl.data(for: newUrl) {
-                let new = coreData.urls.new(with: data)
+                let _ = coreData.urls.new(with: data)
                 coreData.saveContext()
                 reloadApps()
             }

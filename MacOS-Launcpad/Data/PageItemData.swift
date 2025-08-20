@@ -49,6 +49,25 @@ extension Array where Element == PageItemData {
         return filter { $0.page == Int16(page) }
     }
     
+    func freeMove(uid: String) {
+        if let moveItem = self.filter({$0.dbApp.guid == uid}).first {
+            let maxPage = maxPage()
+            var isMoved: Bool = false
+            for i in moveItem.page...maxPage {
+                let count = one(page: i).count
+                if count < (PageView.maxAppCount-1) {
+                    isMoved = true
+                    moveItem.dbApp.page = Int16(i)
+                    moveItem.dbApp.index = Int16(count)
+                }
+            }
+            if isMoved == false {
+                moveItem.dbApp.page = Int16(maxPage + 1)
+                moveItem.dbApp.index = 0
+            }
+        }
+    }
+    
     func maxPage() -> Int {
         let sortedByPage = sorted(by: { $0.page > $1.page })
         if let temp = sortedByPage.first {
