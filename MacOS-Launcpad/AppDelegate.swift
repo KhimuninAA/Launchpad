@@ -16,7 +16,9 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.window.makeFirstResponder(self)        
         
-        let isTest: Bool = false
+        ///Select type view
+        let isTest: Bool = true //true //false
+        ///
         if isTest == true {
             self.window.minSize = CGSize(width: 1000, height: 800)
             var frame = window.frame
@@ -31,6 +33,8 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
         
         if let pageView = self.window.contentView as? PageView {
             pageView.reloadApps()
+            let urls = pageView.getAllDBUrls()
+            upfateAppsPath(urls: urls)
         }
     }
     
@@ -69,6 +73,15 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
         window.setFrame(NSScreen.main?.frame ?? .zero, display: true)
     }
     
+    func upfateAppsPath(urls: [DBAppUrl]) {
+        if let menuItem = getMenuItem(from: window.menu, name: "Add") {
+            for dbUrl in urls {
+                let mItem = NSMenuItem(title: dbUrl.url()?.path() ?? "", action: nil, keyEquivalent: "")
+                menuItem.submenu?.addItem(mItem)
+            }
+        }
+    }
+    
     @IBAction func addAppPath(_ sender: Any) {
         if let pageView = self.window.contentView as? PageView {
             pageView.addNewAppsFolder()
@@ -76,3 +89,20 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSWindowDelegate {
     }
 }
 
+extension AppDelegate {
+    func getMenuItem(from menu: NSMenu?, name: String) -> NSMenuItem? {
+        if let menu = menu {
+            for item in menu.items {
+                if let identifier = item.identifier?.rawValue as? String, identifier == name {
+                    return item
+                }
+                if let subMenu = item.submenu {
+                    if let subItem = getMenuItem(from: subMenu, name: name) {
+                        return subItem
+                    }
+                }
+            }
+        }
+        return nil
+    }
+}

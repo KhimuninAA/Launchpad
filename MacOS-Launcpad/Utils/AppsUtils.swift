@@ -16,7 +16,7 @@ struct AppsInfo: ItemData{
 
 class AppsUtils{
     
-    static func getAllApps(urls: [DBAppUrl]) -> [AppsInfo] {
+    static func getAllApps(urls: [DBAppUrl]?) -> [AppsInfo] {
         var tempApps = [AppsInfo]()
         
         //let u = promptForWorkingDirectoryPermission()
@@ -60,19 +60,21 @@ class AppsUtils{
             }
         }
         
-        for dbUrl in urls {
-            if let workingDir = dbUrl.url() {
-                if !workingDir.startAccessingSecurityScopedResource() {
-                    print("startAccessingSecurityScopedResource returned false. This directory might not need it, or this URL might not be a security scoped URL, or maybe something's wrong?")
-                }
-                
-                if let contents = try? FileManager.default.contentsOfDirectory(atPath: workingDir.path()) {
-                    if let apps = getApps(for: contents, basePath: workingDir.path()) {
-                        tempApps.insert(contentsOf: apps, at: tempApps.count)
+        if let urls = urls {
+            for dbUrl in urls {
+                if let workingDir = dbUrl.url() {
+                    if !workingDir.startAccessingSecurityScopedResource() {
+                        print("startAccessingSecurityScopedResource returned false. This directory might not need it, or this URL might not be a security scoped URL, or maybe something's wrong?")
                     }
+                    
+                    if let contents = try? FileManager.default.contentsOfDirectory(atPath: workingDir.path()) {
+                        if let apps = getApps(for: contents, basePath: workingDir.path()) {
+                            tempApps.insert(contentsOf: apps, at: tempApps.count)
+                        }
+                    }
+                    
+                    workingDir.stopAccessingSecurityScopedResource()                
                 }
-                
-                workingDir.stopAccessingSecurityScopedResource()                
             }
         }
         

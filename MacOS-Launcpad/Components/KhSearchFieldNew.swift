@@ -124,11 +124,11 @@ class KhSearchFieldNew: NSTextField {
 //        return true
 //    }
 //    
-//    override func keyDown(with event: NSEvent) {
-//        if event.keyCode == 53 {
-//            NSApp.terminate(nil)
-//        }
-//    }
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            NSApp.terminate(nil)
+        }
+    }
 }
 
 extension KhSearchFieldNew : NSTextFieldDelegate {

@@ -41,11 +41,11 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="Add" id="dMs-cI-mzQ">
+                <menuItem title="Add" identifier="Add" id="dMs-cI-mzQ">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Add" id="jAl-7J-BXn">
                         <items>
-                            <menuItem title="App path" id="uf5-9z-Lnm">
+                            <menuItem title="App path" identifier="App path" id="uf5-9z-Lnm">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="addAppPath:" target="Voe-Tx-rLC" id="HL5-rH-hki"/>

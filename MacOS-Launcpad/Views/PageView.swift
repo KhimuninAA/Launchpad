@@ -15,7 +15,7 @@ enum MouseActionType{
 
 class PageView: KhPageView{
     private var firstAppsPageView: AppsPageView!
-    private var coreData: DBCoreData!
+    var modelData: DBModelData!
     
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -28,99 +28,83 @@ class PageView: KhPageView{
     }
     
     private func initView() {
-        coreData = DBCoreData.init()
+        let coreData = DBCoreData.init()
+        modelData = DBModelData(сoreData: coreData)
+        modelData.onChangeApps = { [weak self] in
+            self?.reloadApps()
+        }
+        modelData.onChangeUrls = { [weak self] in
+            self?.reloadApps()
+        }
+        modelData.onChangeItemsData = { [weak self] (isChanged) in
+            self?.updateAppsUI(isChanged: isChanged)
+        }
         firstAppsPageView = AppsPageView(frame: .zero)
+        PageView.maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
+        
         searchField.onSearchTextChanged = { [weak self] (searchText) in
             self?.searchText = searchText
-            self?.updateAppsUI()
+            self?.updateAppsUI(isChanged: true)
         }
     }
     
-    private var fullAppsPages: [PageItemData]?
     private var showAppsPages: [PageItemData]?
     static var maxAppCount: Int = 0
     
-    func loadItemsData(apps: [AppsInfo]) -> [PageItemData] {
-        let allDB = coreData.apps.getAll()
-        var tempItemsData = [PageItemData]()
-        
-        var newApps = [AppsInfo]()
-        
-        for app in apps {
-            if let dbApp = allDB.filter({ $0.guid == app.path }).first {
-                let item = PageItemData(dbApp: dbApp, app: app, apps: nil)
-                tempItemsData.append(item)
-            } else {
-                newApps.append(app)
-            }
-        }
-        
-        for newApp in newApps {
-            let newPos = tempItemsData.newPos()
-            let newDBApp = coreData.apps.new(with: newApp, newPos: newPos)
-            let item = PageItemData(dbApp: newDBApp, app: newApp, apps: nil)
-            tempItemsData.append(item)
-        }
-        
-        if newApps.count > 0 {
-            coreData.saveContext()
-        }
-        
-        return tempItemsData
+    func getAllDBUrls() -> [DBAppUrl] {
+        let urls = modelData.fullUrls ?? [DBAppUrl]()
+        return urls
     }
     
     func reloadApps() {
-        let urls = coreData.urls.all()
-        let apps = AppsUtils.getAllApps(urls: urls)
-        setApps(apps)
-    }
-    
-    func setApps(_ apps: [AppsInfo]) {
-        PageView.maxAppCount = firstAppsPageView.getMaxAppsCount(size: self.bounds.size)
-        fullAppsPages = loadItemsData(apps: apps)
-        
-        updateAppsUI()
+        if let _ = modelData.fullApps, let _ = modelData.fullUrls {
+            modelData.realoadItemsData()
+        }
     }
 
     private var searchText: String? = nil
     private func updateSearch() {
         if let searchText = searchText, searchText.count > 0 {
             currentPage = 0
-            let searchAppsPages = fullAppsPages?.search(text: searchText)
+            let searchAppsPages = modelData.fullItemsData?.search(text: searchText)
             showAppsPages = searchAppsPages
         } else {
-            showAppsPages = fullAppsPages
+            showAppsPages = modelData.fullItemsData
         }
     }
     
-    private func updateAppsUI() {
+    private func updateAppsUI(isChanged: Bool) {
         updateSearch()
 
-        ///clear
-        self.clearViews()
-
-        if let showAppsPages = showAppsPages {
-            let pageCount = showAppsPages.maxPage()
-            if pageCount >= 0 {
-                for i in 0...pageCount {
-                    let items = showAppsPages.one(page: i)
-                    let appsPageView = AppsPageView(frame: .zero)
-                    addPage(appsPageView)
-                    appsPageView.setApps(items)
-                    appsPageView.onNeedDBSave = { [weak self] in
-                        self?.coreData.saveContext()
-                    }
-                    appsPageView.onFreeMoveItem = { [weak self] (itemView) in
-                        self?.fullAppsPages?.freeMove(uid: itemView.uid)
-                        self?.coreData.saveContext()
-                        self?.updateAppsUI()
+        if isChanged == true {
+            ///clear
+            self.clearViews()
+            var pageCount: Int = 0
+            if let showAppsPages = showAppsPages {
+                pageCount = showAppsPages.maxPage()
+                if pageCount >= 0 {
+                    for i in 0...pageCount {
+                        let items = showAppsPages.one(page: i)
+                        let appsPageView = AppsPageView(frame: .zero)
+                        appsPageView.currentPage = i
+                        addPage(appsPageView)
+                        appsPageView.setApps(items)
+                        appsPageView.onNeedDBSave = { [weak self] in
+                            self?.modelData.save()
+                        }
+                        appsPageView.onFreeMoveItem = { [weak self] (itemView) in
+                            self?.modelData.fullItemsData?.freeMove(uid: itemView.uid)
+                            self?.modelData.save()
+                            self?.updateAppsUI(isChanged: true) //TODO
+                        }
                     }
                 }
             }
+            
+            let newPageView = AppsPageView(frame: .zero)
+            newPageView.currentPage = pageCount + 1
+            addPage(newPageView)
         }
-
-        let newPageView = AppsPageView(frame: .zero)
-        addPage(newPageView)
     }
     
     func updateA(item: ItemView) {
@@ -135,6 +119,15 @@ class PageView: KhPageView{
     override func mouseDown(with event: NSEvent) {
         let locationInWindow = event.locationInWindow
         let locationInView = convert(locationInWindow, from: nil)
+        
+        //если открыта папка
+        if let appsPageView = getCurrentView() as? AppsPageView {
+            if appsPageView.isOpenedFolder {
+                appsPageView.closeFolder()
+                return
+            }
+        }
+        
         startLocation = locationInView
 
         if let item = getItem(by: locationInView) {
@@ -227,14 +220,58 @@ class PageView: KhPageView{
             let newFrame = CGRect(x: nX, y: nY, width: startItemFrame.width, height: startItemFrame.height)
             moveItem.frame = newFrame
             draggedNeedChangePage(x: nX)
+            moveInFolder(item: moveItem, x: nX + 0.5 * startItemFrame.width, y: nY + 0.5 * startItemFrame.height)
+            
             moveItemView(item: moveItem, x: nX + 0.5 * startItemFrame.width, y: nY + 0.5 * startItemFrame.height)
+        }
+    }
+    
+    private var seekFolder: ItemView?
+    private var seekFolderTimer: Timer?
+    private func moveInFolder(item: ItemView, x: CGFloat, y: CGFloat) {
+        let point = CGPoint(x: x, y: y)
+        if let appsPageView = getCurrentView() as? AppsPageView {
+            var isSeek: Bool = false
+            let moves = ItemViewMoveType.allTypes()
+            for move in moves {
+                if let index = appsPageView.getIndex(point: move.getNew(point: point)), index != item.index {
+                    if let seek = appsPageView.getItem(by: index) {
+                        if seekFolder != seek {
+                            seekFolder = seek
+                            seekFolderTimer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(needOpenFolderTimer), userInfo: nil, repeats: false)
+                        }
+                    }
+                    isSeek = true
+                }
+            }
+            if isSeek == false {
+                seekFolder = nil
+                seekFolderTimer?.invalidate()
+                seekFolderTimer = nil
+                appsPageView.selected(style: .none, select: nil)
+            }
+        }        
+    }
+    
+    @objc func needOpenFolderTimer() {
+        if let seekFolder = seekFolder {
+            seekFolderTimer?.invalidate()
+            seekFolderTimer = nil
+            if let appsPageView = getCurrentView() as? AppsPageView {
+                appsPageView.selected(style: .foldered, select: seekFolder)
+                seekFolder.blinkMaskBolder(alphaFrom: 0.9, alphaTo: 0.5, onCompletion: { [weak self] in
+                    if let seekFolder = self?.seekFolder {
+                        appsPageView.openFolder(folder: seekFolder)
+                    }
+                })
+            }
         }
     }
     
     private var moveToIndex: Int? = nil
     func moveItemView(item: ItemView, x: CGFloat, y: CGFloat) {
         if let appsPageView = getCurrentView() as? AppsPageView {
-            let index = appsPageView.getIndex(x: x, y: y)
+            let index = appsPageView.getIndex(x: x, y: y, defaultIndex: item.index)
             if moveToIndex != index {
                 moveToIndex = index
                 appsPageView.move(itemView: item, to: index)
@@ -278,12 +315,7 @@ class PageView: KhPageView{
     
     func addNewAppsFolder() {
         if let newUrl = promptForWorkingDirectoryPermission() {
-            let urls = coreData.urls.all()
-            if urls.isExist(url: newUrl) == false, let data = DBAppUrl.data(for: newUrl) {
-                let _ = coreData.urls.new(with: data)
-                coreData.saveContext()
-                reloadApps()
-            }
+            self.modelData.new(url: newUrl)
         }
     }
     

@@ -19,7 +19,12 @@ struct PageItemData{
 
 extension PageItemData {
     var page: Int {
-        return newPos?.page ?? Int(dbApp.page)
+        get{
+            return newPos?.page ?? Int(dbApp.page)
+        }
+        set{
+            dbApp.page = Int16(newValue)
+        }
     }
     var index: Int {
         get{
@@ -45,8 +50,10 @@ extension Array where Element == PageItemData {
         return ItemDataNewPos(index: 0, page: maxPage + 1)
     }
     
-    func one(page: Int) -> [PageItemData] {
-        return filter { $0.page == Int16(page) }
+    func one(page: Int, dirGuid: String? = nil) -> [PageItemData] {
+        return filter {
+            $0.page == Int16(page) && $0.dbApp.dirGuid == dirGuid
+        }
     }
     
     func freeMove(uid: String) {
